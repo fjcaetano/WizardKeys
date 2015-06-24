@@ -55,6 +55,8 @@ static io_connect_t conn = 0;
  * Renamed by Flávio Caetano in 2015-06-24
  */
 void KBLStartLightService() {
+  if (conn != 0) return;
+    
   kern_return_t kr;
   io_service_t serviceObject;
 
