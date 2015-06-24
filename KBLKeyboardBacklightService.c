@@ -12,11 +12,15 @@
  * http://forums.macrumors.com/archive/index.php/t-1133446.html
  * http://lists.apple.com/archives/darwin-drivers/2008/mar/msg00022.html
  * http://lists.apple.com/archives/darwin-drivers/2008/Jan/msg00070.html
+ *
+ *
+ *  UPDATE
  */
+
+#include "KBLKeyboardBacklightService.h"
 
 #include <mach/mach.h>
 #include <IOKit/IOKitLib.h>
-#include <CoreFoundation/CoreFoundation.h>
 
 /* This enum defines the different functions available for hardware
  * manipulation by the IOConnectCallMethod. Taken directly from Amit Singh's
@@ -36,13 +40,21 @@ enum {
 };
 
 /* This defines the connection used by the IOConnectCall methods. Must be set
- * by the startLightService function before being used. */ 
-static io_connect_t connect = 0;
+ * by the startLightService function before being used.
+ *
+ *  UPDATE
+ * Renamed by Flávio Caetano in 2015-06-24
+ */
+static io_connect_t conn = 0;
 
 /* This function performs initialization work to ensure that the connection to
  * the service performing keyboard LED modifications is open. It modifies the
- * io_connect_t connect used throughout the implementation. */
-void startLightService() {
+ * io_connect_t connect used throughout the implementation.
+ *
+ *  UPDATE
+ * Renamed by Flávio Caetano in 2015-06-24
+ */
+void KBLStartLightService() {
   kern_return_t kr;
   io_service_t serviceObject;
 
@@ -59,7 +71,7 @@ void startLightService() {
   
   // Open the matching service. The static variable connect is used to allow
   // communication with the IOConnect APIs.
-  kr = IOServiceOpen(serviceObject, mach_task_self(), 0, &connect);
+  kr = IOServiceOpen(serviceObject, mach_task_self(), 0, &conn);
 
   // Release the service object and clean up, checking for errors.
   IOObjectRelease(serviceObject);
@@ -70,15 +82,19 @@ void startLightService() {
 }
 
 /* Returns a value between 0 and 0xfff indicating the brightness of the
- * keyboard LED light. */
-uint64_t getKeyboardLEDValue() {
+ * keyboard LED light.
+ *
+ *  UPDATE
+ * Renamed by Flávio Caetano in 2015-06-24
+ */
+uint64_t KBLGetKeyboardLEDValue() {
   kern_return_t kr;
   IOItemCount inputCount = 1;
   IOItemCount outputCount = 1;
   uint64_t outValue = 5;
   const uint64_t fakeInput = 0; // Function requires fake input.
 
-  kr = IOConnectCallMethod(connect, kGetLEDBrightnessID, &fakeInput, inputCount, nil,
+  kr = IOConnectCallMethod(conn, kGetLEDBrightnessID, &fakeInput, inputCount, nil,
     0, &outValue, &outputCount, nil, 0);
   if (kr != KERN_SUCCESS) {
     mach_error("IOConnectCallMethod: ", kr);
@@ -86,8 +102,12 @@ uint64_t getKeyboardLEDValue() {
   return outValue;
 }
 
-/* Sets the keyboard LED brightness to a value between 0 and 0xfff. */
-void setKeyboardLEDValue(uint64_t ledValue) {
+/* Sets the keyboard LED brightness to a value between 0 and 0xfff.
+ *
+ *  UPDATE
+ * Renamed by Flávio Caetano in 2015-06-24
+ */
+void KBLSetKeyboardLEDValue(uint64_t ledValue) {
   if (ledValue > 0xfff) {
     fprintf(stderr, "ledValue is higher than the maximum value, 0xfff. Ending\
         program to avoid hardware funkiness.");
@@ -101,7 +121,7 @@ void setKeyboardLEDValue(uint64_t ledValue) {
   inValues[0] = 0;
   inValues[1] = ledValue;
   
-  kr = IOConnectCallMethod(connect, kSetLEDBrightnessID, inValues, inputCount,
+  kr = IOConnectCallMethod(conn, kSetLEDBrightnessID, inValues, inputCount,
       nil, 0, &fakeOutput, &outputCount, nil, 0);
   if (kr != KERN_SUCCESS) {
     mach_error("IOConnectCallMethod: ", kr);
@@ -109,8 +129,12 @@ void setKeyboardLEDValue(uint64_t ledValue) {
 }
 
 /* Set keyboard LED brightness to a value between 0 and 0xfff, fading the
-   change in brightness over time_ms milliseconds. */
-void setKeyboardLEDValueFade(uint64_t ledValue, uint64_t time_ms) {
+ change in brightness over time_ms milliseconds.
+ *
+ *  UPDATE
+ * Renamed by Flávio Caetano in 2015-06-24
+ */
+void KBLSetKeyboardLEDValueFade(uint64_t ledValue, uint64_t time_ms) {
   if (ledValue > 0xfff) {
     fprintf(stderr, "ledValue is higher than the maximum value, 0xfff. Ending\
         program to avoid hardware funkiness.");
@@ -125,7 +149,7 @@ void setKeyboardLEDValueFade(uint64_t ledValue, uint64_t time_ms) {
   inValues[1] = ledValue;
   inValues[2] = time_ms;
   
-  kr = IOConnectCallMethod(connect, kSetLEDFadeID, inValues, inputCount,
+  kr = IOConnectCallMethod(conn, kSetLEDFadeID, inValues, inputCount,
       nil, 0, &fakeOutput, &outputCount, nil, 0);
   if (kr != KERN_SUCCESS) {
     mach_error("IOConnectCallMethod: ", kr);
